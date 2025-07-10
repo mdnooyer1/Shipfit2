@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <title>ShipFit</title>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; margin: 0; padding: 0; }
+    header { background: #1976d2; color: white; padding: 20px 0; text-align: center; }
+    header img { height: 40px; vertical-align: middle; margin-right: 10px; }
+    header h1 { display: inline; font-size: 1.8rem; margin: 0; }
+    .container { max-width: 1000px; margin: 40px auto; background: #fff; padding: 30px 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    form { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .form-group { display: flex; flex-direction: column; }
+    .form-group label { margin-bottom: 6px; font-weight: 600; color: #333; }
+    .form-group input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+    .form-group input:focus { outline: none; border-color: #1976d2; box-shadow: 0 0 0 2px rgba(25,118,210,0.2); }
+    .full-width { grid-column: 1 / -1; }
+    .buttons { display: flex; justify-content: center; gap: 20px; margin-top: 20px; flex-wrap: wrap; }
+    .buttons button { padding: 12px 24px; border: none; border-radius: 5px; background: #1976d2; color: #fff; font-weight: 600; font-size: 1rem; cursor: pointer; transition: background 0.2s ease; }
+    .buttons button:hover { background: #0d47a1; }
+    #resultaten { margin-top: 30px; }
+    .result-item { padding: 12px; border-radius: 4px; margin-bottom: 10px; }
+    .result-ok { background: #e8f5e9; color: #2e7d32; border: 1px solid #81c784; }
+    .result-error { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+    .arm-row { display: flex; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+    .arm-block { min-width: 110px; text-align: center; padding: 12px 0; margin-bottom: 0; border-radius: 4px; }
+    .row-flex { display: flex; gap: 20px; }
+    .row-flex .form-group { flex: 1; }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="/mnt/data/zrlogo.png" alt="Zeeland Refinery Logo">
+    <h1>ShipFit</h1>
+  </header>
+  <div class="container">
+    <div class="row-flex full-width">
+      <div class="form-group" style="flex: 1;">
+        <label for="zoekImo">Zoek op IMO-nummer</label>
+        <input id="zoekImo" type="text" placeholder="Bijv. 1234567" maxlength="7">
+      </div>
+      <button type="button" class="buttons" style="align-self: flex-end; padding: 10px 20px; background:#1976d2; color:#fff; border:none; border-radius:4px; cursor:pointer;" onclick="zoekImoNummer()">Zoek</button>
+    </div>
+    <form id="afmeer-form" onsubmit="return false;">
+      <div class="row-flex full-width">
+        <div class="form-group">
+          <label for="shipName">Scheepsnaam</label>
+          <input id="shipName" type="text" placeholder="Naam van het schip">
+        </div>
+        <div class="form-group">
+          <label for="imo">IMO-nummer</label>
+          <input id="imo" type="text" pattern="\d{7}" title="IMO moet uit 7 cijfers bestaan" placeholder="1234567" maxlength="7">
+        </div>
+      </div>
+      <div class="row-flex full-width">
+        <div class="form-group">
+          <label for="pbTotal">Totaal parallel body [m]</label>
+          <input id="pbTotal" type="number" step="0.01" placeholder="Min 50">
+        </div>
+        <div class="form-group">
+          <label for="loa">Length overall (LOA) [m]</label>
+          <input id="loa" type="number" step="0.01" placeholder="Min 100, Max 280">
+        </div>
+      </div>
+      <div class="row-flex full-width">
+        <div class="form-group">
+          <label for="freeboard">Freeboard normal ballast [m]</label>
+          <input id="freeboard" type="number" step="0.01" placeholder="Max 14.4">
+        </div>
+        <div class="form-group">
+          <label for="manifold">Hoogte manifold [m]</label>
+          <input id="manifold" type="number" step="0.01" placeholder="Max 16.4">
+        </div>
+        <div class="form-group">
+          <label for="deadweight">Summer deadweight [t]</label>
+          <input id="deadweight" type="number" step="0.01" placeholder="Max 130000">
+        </div>
+      </div>
+      <div class="row-flex full-width">
+        <div class="form-group">
+          <label for="fwd">Forward (FWD) [m]</label>
+          <input id="fwd" type="number" step="0.01" placeholder="Afstand tot boeg">
+        </div>
+        <div class="form-group">
+          <label for="aft">Aft (AFT) [m]</label>
+          <input id="aft" type="number" step="0.01" placeholder="Afstand tot hek">
+        </div>
+      </div>
+      <div class="full-width buttons">
+        <button type="button" onclick="checkAfmeren()">Controleer</button>
+        <button type="button" onclick="opslaanGegevens()">Opslaan</button>
+      </div>
+    </form>
+    <div id="resultaten"></div>
+  </div>
+<script>
+// Initialize records from localStorage
+let opgeslagenRecords = JSON.parse(localStorage.getItem('shipfitRecords')) || [];
+
+function checkAfmeren() {
+  const resultaten = [];
+  const fwd = parseFloat(document.getElementById('fwd').value) || 0;
+  const aft = parseFloat(document.getElementById('aft').value) || 0;
+  const pb = parseFloat(document.getElementById('pbTotal').value) || 0;
+  const loa = parseFloat(document.getElementById('loa').value) || 0;
+  const freeboard = parseFloat(document.getElementById('freeboard').value) || 0;
+  const manifold = parseFloat(document.getElementById('manifold').value) || 0;
+  const deadweight = parseFloat(document.getElementById('deadweight').value) || 0;
+
+  // Parallel body & LOA
+  const pbHtml = pb >= 50
+    ? '<div class="result-item result-ok">Parallel body lengte is voldoende</div>'
+    : '<div class="result-item result-error">Parallel body te kort (minimaal 50m vereist)</div>';
+  const loaHtml = (loa >= 100 && loa <= 280)
+    ? '<div class="result-item result-ok">LOA binnen limieten</div>'
+    : '<div class="result-item result-error">LOA buiten limieten (100-280m)</div>';
+  resultaten.push(`<div class="row-flex">${pbHtml}${loaHtml}</div>`);
+  // Controle FWD + AFT = Parallel body ±1m
+  const sumDiff = Math.abs((fwd + aft) - pb);
+  const sumCond = sumDiff <= 1;
+  const sumHtml = sumCond
+    ? `<div class=\"result-item result-ok\">FWD + AFT komt overeen met Parallel body (verschil ${sumDiff.toFixed(2)} m)</div>`
+    : `<div class=\"result-item result-error\">FWD + AFT wijkt af van Parallel body (verschil ${sumDiff.toFixed(2)} m)</div>`;
+  resultaten.push(`<div class=\"row-flex\">${sumHtml}</div>`);
+
+  // Freeboard, Manifold, Deadweight
+  const fbHtml = freeboard <= 14.4
+    ? '<div class="result-item result-ok">Freeboard binnen limiet</div>'
+    : '<div class="result-item result-error">Freeboard te hoog (max 14.4m)</div>';
+  const mfHtml = manifold <= 16.4
+    ? '<div class="result-item result-ok">Manifold hoogte binnen limiet</div>'
+    : '<div class="result-item result-error">Manifold hoogte te hoog (max 16.4m)</div>';
+  const dwHtml = deadweight <= 130000
+    ? '<div class="result-item result-ok">Deadweight binnen limiet</div>'
+    : '<div class="result-item result-error">Deadweight te hoog (max 130000t)</div>';
+  resultaten.push(`<div class="row-flex">${fbHtml}${mfHtml}${dwHtml}</div>`);
+
+  // Laadarmen PS & SB arrays
+  const armenPS = [
+    { arm: 'Arm4-PS', cond: fwd > 28.35 && aft > 19.68 },
+    { arm: 'Arm5-PS', cond: fwd > 30.94 && aft > 17.09 },
+    { arm: 'Arm7-PS', cond: fwd > 36.58 && aft > 11.45 },
+    { arm: 'Arm8-PS', cond: fwd > 39.17 && aft > 8.86 },
+  ];
+  const armenSB = [
+    { arm: 'Arm4-SB', cond: fwd > 19.68 && aft > 28.35 },
+    { arm: 'Arm5-SB', cond: fwd > 17.09 && aft > 30.94 },
+    { arm: 'Arm7-SB', cond: fwd > 11.45 && aft > 36.58 },
+    { arm: 'Arm8-SB', cond: fwd > 8.86 && aft > 39.17 },
+  ];
+
+  // Render laadarmen PS
+  resultaten.push('<div class="arm-row">');
+  armenPS.forEach(a => {
+    resultaten.push(`<div class="arm-block ${a.cond ? 'result-ok' : 'result-error'}">${a.arm}</div>`);
+  });
+  resultaten.push('</div>');
+  // Render laadarmen SB
+  resultaten.push('<div class="arm-row">');
+  armenSB.forEach(a => {
+    resultaten.push(`<div class="arm-block ${a.cond ? 'result-ok' : 'result-error'}">${a.arm}</div>`);
+  });
+  resultaten.push('</div>');
+
+  document.getElementById('resultaten').innerHTML = resultaten.join('');
+}
+
+function opslaanGegevens() {
+  const imoVal = document.getElementById('imo').value.trim();
+  if (!/^\d{7}$/.test(imoVal)) {
+    alert('IMO-nummer moet uit precies 7 cijfers bestaan.');
+    return;
+  }
+  const record = {
+    Scheepsnaam: document.getElementById('shipName').value,
+    IMO: imoVal,
+    ParallelBody: parseFloat(document.getElementById('pbTotal').value) || 0,
+    LOA: parseFloat(document.getElementById('loa').value) || 0,
+    Freeboard: parseFloat(document.getElementById('freeboard').value) || 0,
+    Manifold: parseFloat(document.getElementById('manifold').value) || 0,
+    Deadweight: parseFloat(document.getElementById('deadweight').value) || 0,
+    FWD: parseFloat(document.getElementById('fwd').value) || 0,
+    AFT: parseFloat(document.getElementById('aft').value) || 0
+  };
+  opgeslagenRecords.push(record);
+  localStorage.setItem('shipfitRecords', JSON.stringify(opgeslagenRecords));
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(opgeslagenRecords);
+  XLSX.utils.book_append_sheet(wb, ws, 'ShipFit Schepen');
+  XLSX.writeFile(wb, 'shipfit-schepen.xlsx');
+}
+
+function zoekImoNummer() {
+  const zoek = document.getElementById('zoekImo').value.trim();
+  if (!/^\d{7}$/.test(zoek)) { alert('Voer een geldig 7-cijferig IMO-nummer in.'); return; }
+  const rec = opgeslagenRecords.find(r => r.IMO === zoek);
+  if (!rec) {
+    alert('Geen schip gevonden met IMO ' + zoek);
+    return;
+  }
+  document.getElementById('shipName').value = rec.Scheepsnaam;
+  document.getElementById('imo').value = rec.IMO;
+  document.getElementById('pbTotal').value = rec.ParallelBody;
+  document.getElementById('loa').value = rec.LOA;
+  document.getElementById('freeboard').value = rec.Freeboard;
+  document.getElementById('manifold').value = rec.Manifold;
+  document.getElementById('deadweight').value = rec.Deadweight;
+  document.getElementById('fwd').value = rec.FWD;
+  document.getElementById('aft').value = rec.AFT;
+  checkAfmeren();
+}
+</script>
+</body>
+</html>
