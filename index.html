@@ -28,6 +28,15 @@
     .row-flex { display: flex; gap: 20px; }
     .row-flex .form-group { flex: 1; }
   </style>
+  <script>
+    function validatePassword() {
+      const pw = prompt("Voer wachtwoord in om ShipFit te openen:");
+      if (pw !== "445501") {
+        alert("Onjuist wachtwoord. Toegang geweigerd.");
+        document.body.innerHTML = "";
+      }
+    }
+  </script>
 </head>
 <body>
   <header>
