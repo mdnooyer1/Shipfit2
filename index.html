@@ -28,25 +28,7 @@
     .row-flex { display: flex; gap: 20px; }
     .row-flex .form-group { flex: 1; }
   </style>
-  <script>
-function validatePassword() {
-  const pw = prompt("Voer wachtwoord in om ShipFit te openen:");
-  if (pw !== "445501") {
-    alert("Onjuist wachtwoord. Toegang geweigerd.");
-    document.body.innerHTML = "";
-  }
-}
-
-// Initialize records from localStorage
-    function validatePassword() {
-      const pw = prompt("Voer wachtwoord in om ShipFit te openen:");
-      if (pw !== "445501") {
-        alert("Onjuist wachtwoord. Toegang geweigerd.");
-        document.body.innerHTML = "";
-      }
-    }
-  </script>
-</head>
+  </head>
 <body onload="validatePassword()">
   <header>
     <img src="zrlogo.png" alt="Zeeland Refinery Logo">
@@ -73,36 +55,36 @@ function validatePassword() {
       </div>
       <div class="row-flex full-width">
         <div class="form-group">
-          <label for="pbTotal">Totaal parallel body [m]</label>
+          <label for="pbTotal">totaal parallel body (1.34) Ballast conditions [m]</label>
           <input id="pbTotal" type="number" step="0.01" placeholder="Min 50">
         </div>
         <div class="form-group">
-          <label for="loa">Length overall (LOA) [m]</label>
+          <label for="loa">Length overall (1.27) (LOA) [m]</label>
           <input id="loa" type="number" step="0.01" placeholder="Min 100, Max 280">
         </div>
       </div>
       <div class="row-flex full-width">
         <div class="form-group">
-          <label for="freeboard">Freeboard normal ballast [m]</label>
+          <label for="freeboard">Freeboord normal ballast (1.39) [m]</label>
           <input id="freeboard" type="number" step="0.01" placeholder="Max 14.4">
         </div>
         <div class="form-group">
-          <label for="manifold">Hoogte manifold [m]</label>
+          <label for="manifold">Hoogte manifold  (8.24) [m]</label>
           <input id="manifold" type="number" step="0.01" placeholder="Max 16.4">
         </div>
         <div class="form-group">
-          <label for="deadweight">Summer deadweight [t]</label>
+          <label for="deadweight">Summer deadweight (1.39) [t]</label>
           <input id="deadweight" type="number" step="0.01" placeholder="Max 130000">
         </div>
       </div>
       <div class="row-flex full-width">
         <div class="form-group">
-          <label for="fwd">Forward (FWD) [m]</label>
-          <input id="fwd" type="number" step="0.01" placeholder="Afstand tot boeg">
+          <label for="fwd">Forward (1.34) (FWD) [m]</label>
+          <input id="fwd" type="number" step="0.01" placeholder="Forward (1.34) Ballast conditions">
         </div>
         <div class="form-group">
-          <label for="aft">Aft (AFT) [m]</label>
-          <input id="aft" type="number" step="0.01" placeholder="Afstand tot hek">
+          <label for="aft">Aft (1.34) (AFT) [m]</label>
+          <input id="aft" type="number" step="0.01" placeholder="Aft (1.34) Ballast conditions">
         </div>
       </div>
       <div class="full-width buttons">
